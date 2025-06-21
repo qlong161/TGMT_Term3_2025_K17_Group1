@@ -25,3 +25,9 @@ Thumbs.db
 .env
 
 
+*.jpg
+*.jpeg
+*.png
+db/
+resources/images/
+test_image/

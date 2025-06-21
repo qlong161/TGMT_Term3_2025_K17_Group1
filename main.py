@@ -1,7 +1,12 @@
+import os.path
+import subprocess
+import datetime
+
 import tkinter as tk
 import cv2
 from PIL import Image, ImageTk
 import util
+import numpy as np
 
 
 class App:
@@ -20,6 +25,12 @@ class App:
         self.webcam_label.place(x=10, y=0, width=700, height=500)
 
         self.add_webcam(self.webcam_label)
+
+        self.db_dir = './db'
+        if not os.path.exists(self.db_dir):
+            os.mkdir(self.db_dir)
+
+        self.log_path = './log.txt'
 
     def add_webcam(self, label):
         if 'cap' not in self.__dict__:
@@ -43,7 +54,22 @@ class App:
         self._label.after(20, self.process_webcam)
 
     def login(self):
-        pass
+        unknown_img_path = './.tmp.jpg'
+
+        cv2.imwrite(unknown_img_path, self.most_recent_capture_arr)
+
+        output = str(subprocess.check_output(['face_recognition', self.db_dir, unknown_img_path]))
+        name = output.split(',')[1][:-5]
+
+        if name in ['unknown_person', 'no_persons_found']:
+            util.msg_box('Oh no ....', 'Unknown person please try again or register new user.')
+        else:
+            util.msg_box('Welcome back!', 'Welcome, {}.'.format(name))
+            with open(self.log_path, 'a') as f:
+                f.write('{},{}\n'.format(name, datetime.datetime.now()))
+                f.close()
+
+        os.remove(unknown_img_path)
 
     def register_new_user(self):
         self.register_new_user_window = tk.Toplevel(self.main_window)
@@ -81,7 +107,14 @@ class App:
         self.main_window.mainloop()
 
     def accept_register_new_user(self):
-        pass
+        name = self.entry_text_register_new_user.get(1.0, "end-1c")
+        img_array = np.array(self.register_new_user_capture)
+        img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(os.path.join(self.db_dir, '{}.jpg'.format(name)), img_bgr)
+
+        util.msg_box('Success !', 'User was register sucessfullly !')
+
+        self.register_new_user_window.destroy()
 
 if __name__ == '__main__':
     app = App()
