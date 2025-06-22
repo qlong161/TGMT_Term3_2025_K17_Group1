@@ -10,7 +10,6 @@ import csv
 from tkinter.ttk import Combobox
 
 
-
 class App:
     def __init__(self):
         self.main_window = tk.Tk()
@@ -48,8 +47,16 @@ class App:
     def process_webcam(self):
         ret, frame = self.cap.read()
         self.most_recent_capture_arr = frame
-        img_ = cv2.cvtColor(self.most_recent_capture_arr, cv2.COLOR_BGR2RGB)
+
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        face_locations = face_recognition.face_locations(rgb_frame)
+
+        for top, right, bottom, left in face_locations:
+            cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+
+        img_ = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.most_recent_capture_pil = Image.fromarray(img_)
+
         imgtk = ImageTk.PhotoImage(image=self.most_recent_capture_pil)
         self._label.imgtk = imgtk
         self._label.configure(image=imgtk)
@@ -88,7 +95,6 @@ class App:
             best_match_idx = np.argmin(face_distances)
             student_id = known_ids[best_match_idx]
 
-            # 🔎 Lấy thông tin từ students.csv
             full_name = ""
             class_name = ""
             try:
@@ -104,10 +110,8 @@ class App:
                 os.remove(unknown_img_path)
                 return
 
-            # ⏱ Thời gian hiện tại
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # 📁 Ghi file điểm danh
             try:
                 already_logged = False
                 if os.path.exists("attendance.csv"):
@@ -121,9 +125,9 @@ class App:
                     with open("attendance.csv", "a", encoding='utf-8', newline='') as f:
                         writer = csv.writer(f)
                         if os.stat("attendance.csv").st_size == 0:
-                            writer.writerow(['student_id', 'full_name', 'class', 'timestamp'])  # Header
+                            writer.writerow(['student_id', 'full_name', 'class', 'timestamp'])
                         writer.writerow([student_id, full_name, class_name, timestamp])
-                    util.msg_box('Welcome back!', f'Welcome, {full_name}.')
+                    util.msg_box('Welcome back!', f'{full_name} attended !!.')
                 else:
                     util.msg_box('Info', f'{full_name} has already been marked present today.')
 
@@ -151,7 +155,6 @@ class App:
 
         self.add_img_to_label(self.capture_label)
 
-        # ✅ Load danh sách MSSV chưa đăng ký
         student_ids = []
         try:
             with open("students.csv", newline='', encoding='utf-8') as f:
@@ -201,10 +204,9 @@ class App:
             util.msg_box("Info", f"No one has been marked present today ({today}).")
             return
 
-        # Hiển thị danh sách trong cửa sổ mới
         win = tk.Toplevel(self.main_window)
         win.title(f"Attendance for {today}")
-        win.geometry("600x400+400+200")
+        win.geometry("800x500+400+150")
 
         header = tk.Label(win, text="Today's Attendance", font=("Arial", 16, "bold"))
         header.pack(pady=10)
@@ -212,7 +214,6 @@ class App:
         text = tk.Text(win, font=("Consolas", 11))
         text.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
 
-        # Ghi tiêu đề
         text.insert(tk.END, f"{'ID':<12}{'Name':<30}{'Class':<15}{'Time':<20}\n")
         text.insert(tk.END, "-" * 80 + "\n")
 
@@ -242,15 +243,6 @@ class App:
         cv2.imwrite(filename, img_bgr)
 
         util.msg_box('Success !', f'Student {name} registered successfully!')
-        self.register_new_user_window.destroy()
-
-        img_array = np.array(self.register_new_user_capture)
-        img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
-
-        filename = os.path.join(self.db_dir, f'{name}.jpg')
-        cv2.imwrite(filename, img_bgr)
-
-        util.msg_box('Success !', 'User was registered successfully!')
         self.register_new_user_window.destroy()
 
 
